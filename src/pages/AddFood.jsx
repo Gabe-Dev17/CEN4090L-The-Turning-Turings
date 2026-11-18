@@ -7,17 +7,26 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
+import { api } from "../api";
 
 export default function AddFood({ addFoodToMeal }) {
   const [name, setName] = useState("");
   const [calories, setCalories] = useState("");
   const [meal, setMeal] = useState("Breakfast");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleDone = () => {
-    if (!name || !calories) return;
-    addFoodToMeal(meal, { name, calories: Number(calories) });
-    navigate("/");
+  //saves the food so it shows up in lookup later, then logs it
+  const handleDone = async () => {
+    if (!name.trim()) return setError("Enter a food name.");
+    if (calories === "" || !(Number(calories) >= 0)) return setError("Enter calories as a number.");
+    try {
+      const food = await api.createFood(name, Number(calories));
+      await addFoodToMeal(meal, food);
+      navigate("/");
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -63,6 +72,8 @@ export default function AddFood({ addFoodToMeal }) {
             ))}
           </select>
         </div>
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
 
         <button
           onClick={handleDone}

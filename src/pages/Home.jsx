@@ -4,19 +4,42 @@
 //able to see all meals and snacks that have been added
 //add food to all sections
 
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Flame, Minus, Droplets } from "lucide-react";
+import { Plus, Minus, X, Pencil } from "lucide-react";
 
 export default function Home({
   userName,
   meals,
   totalCalories,
   dailyCalorieGoal,
+  setCalorieGoal,
   waterOz,
   setWaterOz,
   dailyWaterGoal,
+  removeFood,
 }) {
   const navigate = useNavigate();
+  //goal editing
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalInput, setGoalInput] = useState("");
+  const [goalError, setGoalError] = useState("");
+
+  const startEditGoal = () => {
+    setGoalInput(String(dailyCalorieGoal));
+    setGoalError("");
+    setEditingGoal(true);
+  };
+
+  const saveGoal = async (e) => {
+    e.preventDefault();
+    try {
+      await setCalorieGoal(Number(goalInput));
+      setEditingGoal(false);
+    } catch (err) {
+      setGoalError(err.message);
+    }
+  };
 
   const caloriePercent = Math.min((totalCalories / dailyCalorieGoal) * 100, 100);
   const caloriesRemaining = dailyCalorieGoal - totalCalories;
@@ -41,13 +64,45 @@ export default function Home({
               <h2 className="text-lg font-semibold">Today's Calories</h2>
             </div>
             <p className="text-4xl font-bold">{totalCalories}</p>
-            <p className="text-green-100 mb-4">of {dailyCalorieGoal} cal goal</p>
+            {editingGoal ? (
+              <form onSubmit={saveGoal} className="mb-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={goalInput}
+                    onChange={(e) => setGoalInput(e.target.value)}
+                    aria-label="Daily calorie goal"
+                    autoFocus
+                    className="w-24 rounded-lg px-2 py-1 text-slate-800"
+                  />
+                  <button type="submit" className="bg-white text-green-600 font-semibold text-sm px-3 py-1 rounded-lg hover:bg-green-50">
+                    Save
+                  </button>
+                  <button type="button" onClick={() => setEditingGoal(false)} className="text-green-100 text-sm hover:text-white">
+                    Cancel
+                  </button>
+                </div>
+                {goalError && <p className="text-sm text-red-100 mt-1">{goalError}</p>}
+              </form>
+            ) : (
+              <p className="text-green-100 mb-4 flex items-center gap-2">
+                of {dailyCalorieGoal} cal goal
+                <button onClick={startEditGoal} aria-label="Edit calorie goal" className="hover:text-white transition">
+                  <Pencil size={14} />
+                </button>
+              </p>
+            )}
             <div className="w-full bg-green-400/40 rounded-full h-3 mb-4">
               <div
                 className="bg-white h-3 rounded-full transition-all duration-500"
                 style={{ width: `${caloriePercent}%` }}
               />
             </div>
+            <p className="text-sm text-green-100">
+              {caloriesRemaining >= 0
+                ? `${caloriesRemaining} cal remaining`
+                : `${-caloriesRemaining} cal over goal`}
+            </p>
           </section>
 
           {/*water section*/}
@@ -118,14 +173,21 @@ export default function Home({
                     </p>
                   ) : (
                     <div className="space-y-1">
-                      {items.map((item, index) => (
+                      {items.map((item) => (
                         <div
-                          key={index}
-                          className="flex justify-between text-sm text-slate-700"
+                          key={item.id}
+                          className="flex justify-between items-center text-sm text-slate-700 group"
                         >
                           <span>{item.name}</span>
-                          <span className="text-slate-500">
+                          <span className="flex items-center gap-2 text-slate-500">
                             {item.calories} cal
+                            <button
+                              onClick={() => removeFood(mealName, item.id)}
+                              aria-label={`Remove ${item.name}`}
+                              className="text-slate-300 hover:text-red-500 transition"
+                            >
+                              <X size={14} />
+                            </button>
                           </span>
                         </div>
                       ))}

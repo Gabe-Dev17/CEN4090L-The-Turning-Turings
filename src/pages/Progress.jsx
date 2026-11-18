@@ -3,7 +3,7 @@
 //users progress will be shown with a chart
 //the Y access will be the users weight
 //the X axis will be the date it was added
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -14,19 +14,33 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Plus } from "lucide-react";
-import { mockWeightData } from "../data/mockFoods";
+import { api, todayStr } from "../api";
+
+//2026-07-21 -> 7/21
+const shortDate = (d) => {
+  const [, m, day] = d.split("-");
+  return `${Number(m)}/${Number(day)}`;
+};
 
 export default function Progress() {
-  const [data, setData] = useState(mockWeightData);
+  const [data, setData] = useState([]);
   const [weight, setWeight] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(todayStr());
 
-  const handleAdd = () => {
+  useEffect(() => {
+    api.getWeights().then(setData);
+  }, []);
+
+  const handleAdd = async () => {
     if (!weight || !date) return;
-    setData([...data, { date, weight: Number(weight) }]);
+    const entry = await api.addWeight(date, Number(weight));
+    setData((prev) =>
+      [...prev, entry].sort((a, b) => a.date.localeCompare(b.date))
+    );
     setWeight("");
-    setDate("");
   };
+
+  const chartData = data.map((d) => ({ ...d, date: shortDate(d.date) }));
 
   return (
     <div className="space-y-6">
@@ -49,8 +63,7 @@ export default function Progress() {
 
           <label className="text-sm text-black-500">Date:</label>
           <input
-            type="text"
-            placeholder="7/21/2027"
+            type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             className="w-full border border-gray-200 rounded-lg p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -59,14 +72,14 @@ export default function Progress() {
           <button
             onClick={handleAdd}
             className="w-full bg-green-500 text-white py-2 rounded-lg font-medium hover:bg-green-600 transition flex items-center justify-center gap-2"
-          >Add
+          ><Plus size={18} /> Add Entry
           </button>
         </div>
 
         {/*weight chart section*/}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-96">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="date" stroke="#6b7280" />
               <YAxis stroke="#6b7280" domain={["dataMin - 10", "dataMax + 10"]} />

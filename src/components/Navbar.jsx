@@ -1,9 +1,15 @@
 //navbar
 //title,home,progress,add,lookup,diary
-import { NavLink } from "react-router-dom";
-import { Home, TrendingUp, Plus, Search, BookOpen } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { Home, TrendingUp, Plus, Search, BookOpen, LogOut } from "lucide-react";
 
-export default function Navbar() {
+export default function Navbar({ onLogout }) {
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    navigate("/login");
+    onLogout();
+  };
+
   const linkClass = ({ isActive }) =>
     `flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
       isActive
@@ -41,6 +47,13 @@ export default function Navbar() {
             <BookOpen size={18} />
             <span className="hidden sm:inline">Diary</span>
           </NavLink>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-red-50 hover:text-red-500 transition"
+          >
+            <LogOut size={18} />
+            <span className="hidden sm:inline">Log Out</span>
+          </button>
         </div>
       </div>
     </nav>

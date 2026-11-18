@@ -1,0 +1,17 @@
+{
+  "name": "calorie-tracker-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch --no-warnings index.js",
+    "start": "node --no-warnings index.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
