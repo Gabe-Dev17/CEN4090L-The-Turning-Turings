@@ -1,23 +1,28 @@
 //users lookupscreen
 //able to look up foods and add food to any meals or snacks
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
-import { mockFoods } from "../data/mockFoods";
+import { api } from "../api";
 
 export default function Lookup({ addFoodToMeal }) {
   const [query, setQuery] = useState("");
   const [selectedMeal, setSelectedMeal] = useState("Breakfast");
+  const [results, setResults] = useState([]);
   const navigate = useNavigate();
 
   const mealOptions = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 
-  const results = mockFoods.filter((f) =>
-    f.name.toLowerCase().includes(query.toLowerCase())
-  );
+  //search the server, small delay so it doesnt fire every keystroke
+  useEffect(() => {
+    const t = setTimeout(() => {
+      api.searchFoods(query).then(setResults).catch(() => setResults([]));
+    }, 200);
+    return () => clearTimeout(t);
+  }, [query]);
 
-  const handleAdd = (food) => {
-    addFoodToMeal(selectedMeal, food);
+  const handleAdd = async (food) => {
+    await addFoodToMeal(selectedMeal, food);
     navigate("/");
   };
 

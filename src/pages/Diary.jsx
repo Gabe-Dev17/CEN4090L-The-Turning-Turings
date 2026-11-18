@@ -6,20 +6,19 @@
 
 import { useState, useEffect } from "react";
 import { BookOpen, Calendar, Save, ChevronRight } from "lucide-react";
+import { api, todayStr } from "../api";
 
 export default function Diary() {
-  //todays date in year-month-day 
-  const todayStr = new Date().toISOString().split("T")[0];
-
-  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [selectedDate, setSelectedDate] = useState(todayStr());
   const [note, setNote] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
 
-  //save all diary entries to localStorage
-  const [allEntries, setAllEntries] = useState(() => {
-    const saved = localStorage.getItem("diaryEntries");
-    return saved ? JSON.parse(saved) : {};
-  });
+  //all entries from the server, keyed by date
+  const [allEntries, setAllEntries] = useState({});
+
+  useEffect(() => {
+    api.getDiary().then(setAllEntries);
+  }, []);
 
   //loading the picked date notes
   useEffect(() => {
@@ -28,14 +27,19 @@ export default function Diary() {
   }, [selectedDate, allEntries]);
 
   //save the current note to selected date
-  const handleSave = () => {
+  const handleSave = async () => {
+    try {
+      await api.saveDiary(selectedDate, note);
+    } catch {
+      setSavedMessage("Couldn't save");
+      return;
+    }
     const updated = { ...allEntries, [selectedDate]: note };
     //if empty delete note
     if (!note.trim()) {
       delete updated[selectedDate];
     }
     setAllEntries(updated);
-    localStorage.setItem("diaryEntries", JSON.stringify(updated));
     setSavedMessage("Saved!");
     setTimeout(() => setSavedMessage(""), 2000);
   };
