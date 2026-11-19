@@ -1,1 +1,51 @@
 @import "tailwindcss";
+/* long words with no spaces (like a 100-character mood) wrap instead of
+   running past the edge of their card or making the page wider than a phone */
+#root { overflow-wrap: anywhere; }
+
+/* keyboard focus: the same green outline as the login page */
+button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid var(--color-green-500); outline-offset: 3px; }
+
+/* ---------- Dark mode (follows the computer's setting) ----------
+   Tailwind's colors are CSS variables, so in dark mode we flip the gray scale
+   (light grays become dark grays and the other way around) and darken the
+   pale green/blue backgrounds. The main green-500 stays the same. */
+:root { color-scheme: light dark; }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-gray-50: oklch(13% 0.028 261.692);
+    --color-gray-100: oklch(21% 0.034 264.665);
+    --color-gray-200: oklch(27.8% 0.033 256.848);
+    --color-gray-300: oklch(37.3% 0.034 259.733);
+    --color-gray-400: oklch(55.1% 0.027 264.364);
+    --color-gray-500: oklch(70.7% 0.022 261.325);
+    --color-gray-600: oklch(87.2% 0.01 258.338);
+    --color-gray-700: oklch(92.8% 0.006 264.531);
+    --color-gray-800: oklch(96.7% 0.003 264.542);
+    --color-gray-900: oklch(98.5% 0.002 247.839);
+    --color-green-50: oklch(26.6% 0.065 152.934);
+    --color-green-200: oklch(44.8% 0.119 151.328);
+    --color-blue-50: oklch(28.2% 0.091 267.935);
+  }
+  .bg-white { background-color: oklch(21% 0.034 264.665); }
+  .bg-gradient-to-br .bg-white { background-color: white; } /* keep the calorie bar white on the green card */
+  .border-green-100 { border-color: oklch(39.3% 0.095 152.535); }
+  .border-blue-100, .bg-blue-200 { border-color: oklch(37.9% 0.146 265.522); }
+  .bg-blue-200 { background-color: oklch(37.9% 0.146 265.522); }
+  .text-green-600 { color: oklch(79.2% 0.209 151.711); }
+  .text-blue-600 { color: oklch(70.7% 0.165 254.624); }
+  .hover\:bg-green-100:hover { background-color: oklch(26.6% 0.065 152.934); }
+  /* reminder banner, errors, delete buttons and the water button's hover */
+  .text-green-800 { color: oklch(92.5% 0.084 155.995); } /* green-200 */
+  .text-green-700 { color: oklch(87.1% 0.15 154.449); } /* green-300 */
+  .text-red-600, .hover\:text-red-600:hover { color: oklch(70.4% 0.191 22.216); } /* red-400 */
+  .border-red-200 { border-color: oklch(39.6% 0.141 25.723); } /* red-900 */
+  .hover\:bg-red-50:hover { background-color: oklch(25.8% 0.092 26.042); } /* red-950 */
+  .hover\:bg-blue-100:hover { background-color: oklch(37.9% 0.146 265.522); } /* blue-900 */
+  /* the open list of a dropdown: Chrome on Windows draws it white, so give the options dark colors too */
+  select option { background-color: oklch(21% 0.034 264.665); color: oklch(96.7% 0.003 264.542); }
+  /* charts */
+  .recharts-cartesian-grid line { stroke: oklch(37.3% 0.034 259.733); }
+  .recharts-default-tooltip { background-color: oklch(21% 0.034 264.665) !important; border-color: oklch(37.3% 0.034 259.733) !important; }
+}

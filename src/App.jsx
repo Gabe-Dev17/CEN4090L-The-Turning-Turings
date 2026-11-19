@@ -1,119 +1,78 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
-import Progress from "./pages/Progress";
 import AddFood from "./pages/AddFood";
 import Lookup from "./pages/Lookup";
+import History from "./pages/History";
 import Diary from "./pages/Diary";
-import Login from "./pages/Login";
 import Navbar from "./components/Navbar";
-import { api, getToken, setToken } from "./api";
+import Reminder from "./components/Reminder";
+import { api, getToken, setToken, LOGIN_PAGE } from "./api";
 
-const emptyMeals = { Breakfast: [], Lunch: [], Dinner: [], Snacks: [] };
+//the charts library is big, so the progress page only loads when it's opened
+const Progress = lazy(() => import("./pages/Progress"));
+
+const loadingText = <p className="text-gray-400 text-center py-16">Loading...</p>;
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(!!getToken());
-  const [meals, setMeals] = useState(emptyMeals);
-  //water in oz
-  const [waterOz, setWaterOz] = useState(0);
 
-  //check saved token on load
+  //check the saved token on load. no token (or an expired one) goes to the login page
   useEffect(() => {
-    if (!getToken()) return;
+    if (!getToken()) {
+      window.location.replace(LOGIN_PAGE);
+      return;
+    }
     api.me()
       .then(setUser)
-      .catch(() => setToken(null))
-      .finally(() => setLoading(false));
+      //a 401 (expired token) already went to the login page in api.js
+      .catch((err) => {
+        if (err.status === 401) return;
+        setToken(null);
+        window.location.replace(LOGIN_PAGE);
+      });
+
+    //the browser's Back button can show a saved copy of this page after logging out
+    //without running the check above, so check again whenever the page is shown
+    const recheck = () => {
+      if (!getToken()) window.location.replace(LOGIN_PAGE);
+    };
+    window.addEventListener("pageshow", recheck);
+    return () => window.removeEventListener("pageshow", recheck);
   }, []);
-
-  //load todays meals and water once logged in
-  useEffect(() => {
-    if (!user) return;
-    api.getMeals().then(setMeals);
-    api.getWater().then((w) => setWaterOz(w.oz));
-  }, [user?.id]);
-
-  const addFoodToMeal = async (mealName, food) => {
-    const entry = await api.addMeal({
-      meal: mealName,
-      name: food.name,
-      calories: food.calories,
-      foodId: food.id ?? null,
-    });
-    setMeals((prev) => ({ ...prev, [mealName]: [...prev[mealName], entry] }));
-  };
-
-  const removeFood = async (mealName, id) => {
-    await api.deleteMeal(id);
-    setMeals((prev) => ({ ...prev, [mealName]: prev[mealName].filter((f) => f.id !== id) }));
-  };
-
-  const updateWater = (oz) => {
-    setWaterOz(oz);
-    api.setWater(oz);
-  };
-
-  //throws so Home can show the error
-  const updateCalorieGoal = async (goal) => {
-    setUser(await api.setCalorieGoal(goal));
-  };
 
   const logout = () => {
     setToken(null);
-    setUser(null);
-    setMeals(emptyMeals);
-    setWaterOz(0);
+    //replace, so Back doesn't go to the page you just logged out of
+    window.location.replace(LOGIN_PAGE);
   };
 
-  if (loading) return null;
+  if (!user) return <div className="min-h-screen bg-gray-50">{loadingText}</div>;
 
-  //not logged in, only login/signup work, everything else goes to /login
-  if (!user) {
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login key="login" mode="login" onLogin={setUser} />} />
-          <Route path="/signup" element={<Login key="signup" mode="signup" onLogin={setUser} />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
-
-  const totalCalories = Object.values(meals)
-    .flat()
-    .reduce((sum, item) => sum + item.calories, 0);
-
+  //any unknown link goes to Home
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-slate-50">
-        <Navbar onLogout={logout} />
-        <main className="max-w-6xl mx-auto px-6 py-8">
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <Home
-                  userName={user.name}
-                  meals={meals}
-                  totalCalories={totalCalories}
-                  dailyCalorieGoal={user.calorieGoal}
-                  setCalorieGoal={updateCalorieGoal}
-                  waterOz={waterOz}
-                  setWaterOz={updateWater}
-                  dailyWaterGoal={user.waterGoal}
-                  removeFood={removeFood}
-                />
-              }
-            />
-            <Route path="/progress" element={<Progress />} />
-            <Route path="/add" element={<AddFood addFoodToMeal={addFoodToMeal} />} />
-            <Route path="/lookup" element={<Lookup addFoodToMeal={addFoodToMeal} />} />
-            <Route path="/diary" element={<Diary />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar user={user} onLogout={logout} />
+        <Reminder user={user} />
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+          <Suspense fallback={loadingText}>
+            <Routes>
+              <Route path="/" element={<Home user={user} />} />
+              <Route path="/progress" element={<Progress />} />
+              <Route path="/add" element={<AddFood />} />
+              <Route path="/lookup" element={<Lookup />} />
+              <Route path="/entries/:id/edit" element={<Lookup />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/diary" element={<Diary />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </main>
+        {/*usda asks apps that use their data to credit it*/}
+        <footer className="text-center text-xs text-gray-400 pb-6">
+          Nutrition data: U.S. Department of Agriculture, FoodData Central.
+        </footer>
       </div>
     </BrowserRouter>
   );
