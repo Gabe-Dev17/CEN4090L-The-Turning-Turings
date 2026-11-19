@@ -5,3 +5,6 @@ dist/
 **/.DS_Store
 server/data.db
 server/data.db-*
+server/auth-secret.txt
+e2e-report/
+test-results/
