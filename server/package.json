@@ -5,13 +5,15 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "node --watch --no-warnings index.js",
-    "start": "node --no-warnings index.js"
+    "dev": "node --watch --disable-warning=ExperimentalWarning index.js",
+    "start": "node --disable-warning=ExperimentalWarning index.js",
+    "test": "node --disable-warning=ExperimentalWarning --test"
   },
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.13"
   },
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "zod": "^4.6.7"
   }
 }

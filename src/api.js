@@ -1,11 +1,10 @@
 //talks to the express server, vite proxies /api to localhost:3001
 
-export const getToken = () => localStorage.getItem("token");
-export const setToken = (t) =>
-  t ? localStorage.setItem("token", t) : localStorage.removeItem("token");
+//the login page is Savannah's plain html page in public/login (not part of react)
+export const LOGIN_PAGE = "/login/index.html"; //full name, vite dev would send "/login/" to react
 
-//local date as yyyy-mm-dd
-export const todayStr = () => new Date().toLocaleDateString("en-CA");
+export const getToken = () => localStorage.getItem("token");
+export const setToken = (t) => (t ? localStorage.setItem("token", t) : localStorage.removeItem("token"));
 
 async function request(method, url, body) {
   const res = await fetch(`/api${url}`, {
@@ -17,37 +16,53 @@ async function request(method, url, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  //token expired, send back to login
-  if (res.status === 401 && getToken() && !url.startsWith("/auth")) {
+  //not logged in anymore (token expired, logged out in another tab, or the database was reset), send back to login
+  if (res.status === 401 && !url.startsWith("/auth")) {
     setToken(null);
-    window.location.href = "/login";
+    window.location.replace(LOGIN_PAGE);
   }
   if (res.status === 204) return null;
 
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Request failed");
+  if (!res.ok) {
+    const err = new Error(data.error || "Something went wrong. Try again.");
+    err.status = res.status;
+    err.field = data.field;
+    throw err;
+  }
   return data;
 }
 
 export const api = {
-  register: (name, email, password) => request("POST", "/auth/register", { name, email, password }),
-  login: (email, password) => request("POST", "/auth/login", { email, password }),
+  //sign up and log in are on the login page (public/login/auth.js)
   me: () => request("GET", "/me"),
-  setCalorieGoal: (calorieGoal) => request("PUT", "/me/calorie-goal", { calorieGoal }),
 
-  searchFoods: (q = "") => request("GET", `/foods?q=${encodeURIComponent(q)}`),
-  createFood: (name, calories) => request("POST", "/foods", { name, calories }),
+  //meals
+  getDay: (date) => request("GET", `/entries?date=${date}`),
+  getEntry: (id) => request("GET", `/entries/${id}`),
+  addEntry: (entry) => request("POST", "/entries", entry),
+  updateEntry: (id, entry) => request("PUT", `/entries/${id}`, entry),
+  deleteEntry: (id) => request("DELETE", `/entries/${id}`),
+  searchEntries: (filter) => request("GET", `/entries/search?${new URLSearchParams(filter)}`),
+  getTrend: (endDate, period) => request("GET", `/entries/trend?endDate=${endDate}&period=${period}`),
 
-  getMeals: (date = todayStr()) => request("GET", `/meals?date=${date}`),
-  addMeal: (entry) => request("POST", "/meals", { date: todayStr(), ...entry }),
-  deleteMeal: (id) => request("DELETE", `/meals/${id}`),
+  //foods
+  searchFoods: (q) => request("GET", `/foods?q=${encodeURIComponent(q)}`),
+  pickFood: (externalId) => request("POST", "/foods/external", { externalId }),
+  addCustomFood: (food) => request("POST", "/foods", food),
 
-  getWater: (date = todayStr()) => request("GET", `/water?date=${date}`),
-  setWater: (oz, date = todayStr()) => request("PUT", "/water", { oz, date }),
+  //goal and reminder
+  getGoal: (date) => request("GET", `/goal?date=${date}`),
+  setTarget: (targetCalories) => request("PUT", "/goal/target", { targetCalories }),
+  setReminder: (reminderTime) => request("PUT", "/goal/reminder", { reminderTime }),
 
+  //water, weight, diary
+  getWater: (date) => request("GET", `/water?date=${date}`),
+  setWater: (date, ounces) => request("PUT", "/water", { date, ounces }),
   getWeights: () => request("GET", "/weight"),
-  addWeight: (date, weight) => request("POST", "/weight", { date, weight }),
-
-  getDiary: () => request("GET", "/diary"),
-  saveDiary: (date, note) => request("PUT", `/diary/${date}`, { note }),
+  setWeight: (date, pounds) => request("PUT", "/weight", { date, pounds }),
+  deleteWeight: (date) => request("DELETE", `/weight/${date}`),
+  getNotes: () => request("GET", "/diary"),
+  getNote: (date) => request("GET", `/diary/${date}`),
+  saveNote: (date, note) => request("PUT", `/diary/${date}`, { note }),
 };

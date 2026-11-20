@@ -1,141 +1,118 @@
 //users diaryscreen
-//users ability to add the way they felt about the food to the diary tab
-//the user is able to add as many characters as they want
-//the notes are saved by month/day/year
+//users ability to write how they felt about the food that day
+//the notes are saved by date (one per day) to their account
 //entries can be revisited and edited
 
-import { useState, useEffect } from "react";
-import { BookOpen, Calendar, Save, ChevronRight } from "lucide-react";
-import { api, todayStr } from "../api";
+import { useEffect, useState } from "react";
+import { Save, ChevronRight } from "lucide-react";
+import { api } from "../api";
+import { today, niceDate } from "../dates";
+import { card, smallInput, greenButton, errorText } from "../styles";
 
 export default function Diary() {
-  const [selectedDate, setSelectedDate] = useState(todayStr());
+  const [selectedDate, setSelectedDate] = useState(today);
   const [note, setNote] = useState("");
+  const [saved, setSaved] = useState(""); //what's in the db, to tell if there are unsaved changes
+  const [notes, setNotes] = useState([]);
   const [savedMessage, setSavedMessage] = useState("");
+  const [error, setError] = useState("");
 
-  //all entries from the server, keyed by date
-  const [allEntries, setAllEntries] = useState({});
-
+  //the list on the side
   useEffect(() => {
-    api.getDiary().then(setAllEntries);
+    api.getNotes().then(setNotes).catch((e) => setError(e.message));
   }, []);
 
-  //loading the picked date notes
+  //load the note for the picked date
   useEffect(() => {
-    setNote(allEntries[selectedDate] || "");
-    setSavedMessage("");
-  }, [selectedDate, allEntries]);
+    let stale = false;
+    api
+      .getNote(selectedDate)
+      .then((n) => {
+        if (stale) return;
+        setNote(n.note);
+        setSaved(n.note);
+        setSavedMessage("");
+      })
+      .catch((e) => !stale && setError(e.message));
+    return () => {
+      stale = true;
+    };
+  }, [selectedDate]);
 
-  //save the current note to selected date
-  const handleSave = async () => {
+  const unsaved = note !== saved;
+
+  function pickDate(d) {
+    if (!d || d === selectedDate) return;
+    if (unsaved && !window.confirm("You have unsaved changes. Leave this entry without saving?")) return;
+    setSelectedDate(d);
+  }
+
+  //save the note to the picked date. an empty note deletes it
+  async function handleSave() {
+    setError("");
     try {
-      await api.saveDiary(selectedDate, note);
-    } catch {
-      setSavedMessage("Couldn't save");
-      return;
+      const res = await api.saveNote(selectedDate, note);
+      setNote(res.note);
+      setSaved(res.note);
+      setNotes(await api.getNotes());
+      setSavedMessage(res.note ? "Saved!" : "Entry removed.");
+      setTimeout(() => setSavedMessage(""), 2000);
+    } catch (err) {
+      setError(err.message);
     }
-    const updated = { ...allEntries, [selectedDate]: note };
-    //if empty delete note
-    if (!note.trim()) {
-      delete updated[selectedDate];
-    }
-    setAllEntries(updated);
-    setSavedMessage("Saved!");
-    setTimeout(() => setSavedMessage(""), 2000);
-  };
-
-  //sort notes by newest date
-  const sortedDates = Object.keys(allEntries).sort(
-    (a, b) => new Date(b) - new Date(a)
-  );
-
-  //format date ex-Mon, Oct 28, 2026
-  const formatDate = (dateStr) => {
-    const d = new Date(dateStr + "T00:00:00");
-    return d.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
+  }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="flex items-center gap-3 mb-2">
-        <h1 className="text-3xl font-bold text-gray-800">My Diary</h1>
-      </div>
+    <div>
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">My Diary</h1>
       <div className="grid md:grid-cols-3 gap-6">
-        {/*entry editor */}
-        <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        {/*entry editor*/}
+        <div className={`md:col-span-2 ${card} p-6`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2">
-              <label className="font-semibold text-gray-700">
-                Entry for:
-              </label>
-            </div>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
+            <label htmlFor="diary-date" className="font-semibold text-gray-700">Entry for:</label>
+            <input id="diary-date" type="date" value={selectedDate} onChange={(e) => pickDate(e.target.value)} className={`${smallInput} text-gray-700`} />
           </div>
 
-          <textarea
+          <textarea name="note"
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            maxLength={10000}
+            aria-label="Diary entry"
             placeholder="How was your day? What did you eat? How did you feel?"
             rows={14}
             className="w-full border border-gray-200 rounded-lg p-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
           />
 
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-3">
-              {savedMessage && (
-                <span className="text-sm text-green-600 font-medium">
-                  {savedMessage}
-                </span>
-              )}
-              <button
-                onClick={handleSave}
-                className="bg-green-500 text-white px-5 py-2 rounded-lg font-medium hover:bg-green-600 transition flex items-center gap-2"
-              >
-                <Save size={18} /> Save Entry
-              </button>
-            </div>
+          <div className="flex items-center justify-end gap-3 mt-4">
+            {error && <span role="alert" className={errorText}>{error}</span>}
+            {savedMessage && <span role="status" className="text-sm text-green-600">{savedMessage}</span>}
+            {unsaved && !savedMessage && <span className="text-sm text-gray-400">Unsaved changes</span>}
+            <button onClick={handleSave} disabled={!unsaved} className={greenButton}>
+              <Save size={18} /> Save Entry
+            </button>
           </div>
         </div>
 
         {/*entries list*/}
-        <div className="md:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className={`md:col-span-1 ${card} p-6`}>
           <h2 className="font-bold text-gray-800 mb-4">Entries</h2>
-          {sortedDates.length === 0 ? (
-            <p className="text-gray-400 text-sm italic">
-              No entries yet
-            </p>
+          {notes.length === 0 ? (
+            <p className="text-gray-400 text-sm italic">No entries yet</p>
           ) : (
             <ul className="space-y-2">
-              {sortedDates.map((date) => (
-                <li key={date}>
+              {notes.map((n) => (
+                <li key={n.date}>
                   <button
-                    onClick={() => setSelectedDate(date)}
+                    onClick={() => pickDate(n.date)}
                     className={`w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition ${
-                      selectedDate === date
-                        ? "bg-green-50 border border-green-200"
-                        : "hover:bg-gray-50"
+                      selectedDate === n.date ? "bg-green-50 border border-green-200" : "hover:bg-gray-50"
                     }`}
                   >
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">
-                        {formatDate(date)}
-                      </p>
-                      <p className="text-xs text-gray-400 truncate max-w-[180px]">
-                        {allEntries[date].slice(0, 40)}
-                        {allEntries[date].length > 40 ? "..." : ""}
-                      </p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-700">{niceDate(n.date)}</p>
+                      <p className="text-xs text-gray-400 truncate">{n.preview}</p>
                     </div>
-                    <ChevronRight size={16} className="text-gray-400" />
+                    <ChevronRight size={16} className="text-gray-400 shrink-0" />
                   </button>
                 </li>
               ))}

@@ -1,7 +1,32 @@
+//passwords and login tokens
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import db from "./db.js";
 
-const SECRET = process.env.AUTH_SECRET || "dev-secret-change-me";
+const dir = path.dirname(fileURLToPath(import.meta.url));
 const TOKEN_DAYS = 7;
+
+//the secret that signs login tokens. anyone who knows it can make a token for any user,
+//so it can't be a fixed string in the code. set AUTH_SECRET in server/.env, or a random one
+//is made the first time and kept in server/auth-secret.txt (gitignored) so a restart
+//doesn't log everyone out
+function loadSecret() {
+  if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET;
+  const file = path.join(dir, "auth-secret.txt");
+  try {
+    const saved = fs.readFileSync(file, "utf8").trim();
+    if (saved) return saved;
+  } catch {
+    //not made yet
+  }
+  const secret = crypto.randomBytes(32).toString("hex");
+  fs.writeFileSync(file, secret + "\n", { mode: 0o600 });
+  return secret;
+}
+
+const SECRET = loadSecret();
 
 export function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -11,6 +36,7 @@ export function hashPassword(password) {
 
 export function checkPassword(password, stored) {
   const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
   const test = crypto.scryptSync(password, salt, 64);
   return crypto.timingSafeEqual(test, Buffer.from(hash, "hex"));
 }
@@ -39,11 +65,13 @@ function readToken(token) {
   }
 }
 
-//put on any route that needs a logged in user
+//put on any route that needs a logged in user.
+//also checks the user still exists (the database might have been reset)
 export function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const data = readToken(header.replace(/^Bearer /, ""));
-  if (!data) return res.status(401).json({ error: "Not logged in" });
+  const user = data && db.prepare("SELECT 1 FROM user WHERE user_id = ?").get(data.id);
+  if (!user) return res.status(401).json({ error: "Log in to continue." });
   req.userId = data.id;
   next();
 }

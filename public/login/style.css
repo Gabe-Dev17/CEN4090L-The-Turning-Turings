@@ -1,0 +1,196 @@
+/* ---------- Colors & fonts ---------- */
+:root {
+--paper: oklch(0.985 0.002 247.839); /* gray-50 */
+--surface: #FFFFFF;
+--ink: oklch(0.278 0.033 256.848); /* gray-800 */
+--muted: oklch(0.551 0.027 264.364); /* gray-500 */
+--line: oklch(0.928 0.006 264.531); /* gray-200 */
+--leaf: oklch(0.723 0.219 149.579); /* the app's green (tailwind green-500) */
+--leaf-dark: oklch(0.627 0.194 149.214); /* darker app green (green-600), button hover */
+--error: oklch(0.577 0.245 27.325); /* red-600 */
+--veg: #4E8A5F;
+--protein: #C8553D;
+--grains: #E3B65A;
+
+--display: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+--body: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+:root {
+--paper: oklch(0.13 0.028 261.692); /* gray-950 */
+--surface: oklch(0.21 0.034 264.665); /* gray-900 */
+--ink: oklch(0.967 0.003 264.542); /* gray-100 */
+--muted: oklch(0.707 0.022 261.325); /* gray-400 */
+--line: oklch(0.373 0.034 259.733); /* gray-700 */
+--leaf-dark: oklch(0.792 0.209 151.711); /* green-400, readable on dark */
+--error: oklch(0.704 0.191 22.216); /* red-400 */
+color-scheme: dark;
+}
+}
+
+
+* { box-sizing: border-box; }
+
+body {
+margin: 0;
+min-height: 100vh;
+background: var(--paper);
+color: var(--ink);
+font-family: var(--body);
+font-size: 1rem;
+line-height: 1.5;
+}
+
+/* ---------- Layout ---------- */
+.layout {
+display: grid;
+grid-template-columns: 1fr 1fr;
+min-height: 100vh;
+}
+
+.intro {
+display: flex;
+flex-direction: column;
+justify-content: center;
+padding: 3rem clamp(2rem, 6vw, 5rem);
+background: oklch(0.527 0.154 150.069); /* green-700, dark enough for white text */
+color: #FFFFFF;
+align-items: center; /* centers the content on wide screens, like the form on the right */
+}
+
+.intro-inner { width: 100%; max-width: 34rem; }
+
+.brand {
+font-family: var(--display);
+font-weight: 800;
+font-size: 1.25rem;
+margin: 0 0 2rem;
+}
+
+.intro h1 {
+font-family: var(--display);
+font-weight: 800;
+font-size: clamp(2.5rem, 5vw, 4rem);
+line-height: 1.05;
+letter-spacing: -0.02em;
+margin: 0 0 2.5rem;
+max-width: 12ch;
+}
+
+/* The plate: the one bold visual on the page */
+.plate { width: min(260px, 60%); }
+.plate .rim     { fill: #FFFFFF; }
+.plate .veg     { fill: var(--veg);     stroke: #FFFFFF; stroke-width: 4; }
+.plate .protein { fill: var(--protein); stroke: #FFFFFF; stroke-width: 4; }
+.plate .grains  { fill: var(--grains);  stroke: #FFFFFF; stroke-width: 4; }
+
+.caption { margin: 1rem 0 0; opacity: 0.85; max-width: 32ch; }
+
+.panel {
+display: flex;
+flex-direction: column;
+justify-content: center;
+padding: 3rem clamp(1.5rem, 6vw, 5rem);
+max-width: 34rem;
+width: 100%;
+margin: 0 auto;
+}
+
+/* ---------- Tabs ---------- */
+.tabs {
+display: flex;
+gap: 1.5rem;
+border-bottom: 1px solid var(--line);
+margin-bottom: 2rem;
+}
+
+.tab {
+background: none;
+border: none;
+border-bottom: 3px solid transparent;
+padding: 0.5rem 0;
+margin-bottom: -1px;
+font: 700 1rem var(--body);
+color: var(--muted);
+cursor: pointer;
+}
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--leaf); }
+
+/* ---------- Forms ---------- */
+.form h2 {
+font-family: var(--display);
+font-weight: 600;
+font-size: 1.75rem;
+margin: 0 0 1.5rem;
+}
+
+label { display: block; font-weight: 700; margin-bottom: 0.35rem; }
+
+input {
+width: 100%;
+padding: 0.75rem 0.9rem;
+font: inherit;
+color: var(--ink);
+background: var(--surface);
+border: 1.5px solid var(--line);
+border-radius: 8px;
+}
+input:focus { outline: none; border-color: var(--leaf); box-shadow: 0 0 0 3px color-mix(in srgb, var(--leaf) 25%, transparent); }
+input[aria-invalid="true"] { border-color: var(--error); }
+
+.password-wrap { position: relative; }
+.password-wrap input { padding-right: 4.5rem; }
+.show-btn {
+position: absolute;
+right: 0.5rem;
+top: 50%;
+transform: translateY(-50%);
+background: none;
+border: none;
+color: var(--leaf-dark);
+font: 700 0.875rem var(--body);
+cursor: pointer;
+padding: 0.25rem 0.5rem;
+}
+
+.hint { margin: 0.35rem 0 0; font-size: 0.875rem; color: var(--muted); }
+.field-error { min-height: 1.25rem; margin: 0.3rem 0 0.9rem; font-size: 0.875rem; color: var(--error); }
+.form-message { min-height: 1.5rem; margin: 0 0 0.75rem; font-weight: 700; color: var(--error); }
+.form-message.success { color: var(--leaf-dark); }
+
+.primary {
+width: 100%;
+padding: 0.85rem;
+font: 500 1rem var(--body);
+color: #FFFFFF;
+background: var(--leaf);
+border: none;
+border-radius: 8px;
+cursor: pointer;
+}
+.primary:hover { background: oklch(0.627 0.194 149.214); } /* green-600 in both light and dark mode, like the app's buttons */
+
+.switch { margin-top: 1.25rem; color: var(--muted); }
+.link {
+background: none; border: none; padding: 0;
+font: 700 1rem var(--body);
+color: var(--leaf-dark);
+text-decoration: underline;
+cursor: pointer;
+}
+
+button:focus-visible { outline: 3px solid var(--leaf); outline-offset: 3px; }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 800px) {
+.layout { grid-template-columns: 1fr; }
+.intro { padding: 2rem 1.5rem; }
+.intro h1 { font-size: 2.25rem; margin-bottom: 1.5rem; }
+.plate { width: 120px; display: block; margin: 0 auto; }
+/* on a phone the green panel sits on top, so center its content and keep the caption */
+.intro-inner { text-align: center; }
+.intro h1 { margin-left: auto; margin-right: auto; }
+.caption { margin: 0.75rem auto 0; font-size: 0.9rem; }
+}
